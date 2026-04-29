@@ -3,34 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>价签添加工具</title>
+    <title>批量价签生成器</title>
     <style>
         :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; --input-bg: #2a2a2a; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #preview-bar { height: 90px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 12px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
-        .thumb-item { position: relative; flex: 0 0 70px; height: 70px; border: 2px solid #444; border-radius: 8px; background: #222; }
-        .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+        
+        /* 预览栏 */
+        #preview-bar { height: 85px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 10px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
+        .thumb-item { position: relative; flex: 0 0 65px; height: 65px; border: 2px solid #444; border-radius: 8px; background: #222; }
+        .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
         .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; }
-        .header-tools { background: #1e1e1e; padding: 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #333; }
-        .row { display: flex; gap: 6px; width: 100%; align-items: center; }
-        .input-group { flex: 1; display: flex; align-items: center; background: var(--input-bg); padding: 0 8px; border-radius: 6px; border: 1px solid #444; }
-        .input-group.large { flex: 2; } 
-        .input-group label { font-size: 11px; color: #777; margin-right: 4px; white-space: nowrap; }
-        input { background: transparent; border: none; color: white; padding: 8px 0; width: 100%; outline: none; font-size: 14px; }
-        input::placeholder { color: #555; }
-        button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; }
+
+        /* 工具栏：优化 5 框布局 */
+        .header-tools { background: #1e1e1e; padding: 8px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #333; }
+        .row { display: flex; gap: 5px; width: 100%; align-items: center; }
+        
+        .input-group { flex: 1; display: flex; align-items: center; background: var(--input-bg); padding: 0 6px; border-radius: 6px; border: 1px solid #444; min-width: 0; }
+        .input-group.wide { flex: 1.5; }
+        .input-group label { font-size: 10px; color: #666; margin-right: 3px; white-space: nowrap; }
+        input { background: transparent; border: none; color: white; padding: 7px 0; width: 100%; outline: none; font-size: 13px; min-width: 0; }
+        
+        button { border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
         .btn-red { background: var(--accent-red); color: white; }
-        .btn-green { background: #27ae60; color: white; padding: 8px 10px; }
+        .btn-green { background: #27ae60; color: white; }
+
+        /* 工作区 */
         #workspace { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #151515; }
         .canvas-container { position: relative; line-height: 0; }
-        #main-display { max-width: 95vw; max-height: 55vh; display: block; user-select: none; pointer-events: none; }
+        #main-display { max-width: 95vw; max-height: 52vh; display: block; user-select: none; pointer-events: none; }
+
+        /* 渲染元素 */
         .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
         .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
+        
         .name-box { position: absolute; top: 32%; left: 15%; width: 70%; height: 15%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
+        /* 惊爆价/会员群价 共享同一个位置 */
         .sale-box { position: absolute; top: 48%; left: 15%; width: 70%; height: 20%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .ori-box { position: absolute; top: 69%; left: 22%; width: 56%; height: 12%; display: flex; align-items: center; justify-content: flex-start; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .note-wrapper { width: 100%; height: 100%; background-color: var(--note-yellow); color: var(--accent-red); font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
+
         .resizer { width: 34px; height: 34px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -17px; bottom: -17px; border-radius: 8px; z-index: 10; }
         .delete-btn { position: absolute; top: -17px; left: -17px; width: 34px; height: 34px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 34px; font-size: 22px; z-index: 10; border: 1px solid #fff; }
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
@@ -41,29 +53,33 @@
 <div id="loading-overlay">正在处理中...</div>
 
 <div id="preview-bar">
-    <button id="add-img-btn" style="flex:0 0 70px; height:70px; background:#222; color:#444; font-size:40px; border-radius:10px; border:2px dashed #333;" onclick="document.getElementById('upload-input').click()">+</button>
+    <button id="add-img-btn" style="flex:0 0 65px; height:65px; background:#222; color:#444; font-size:35px; border-radius:10px; border:2px dashed #333;" onclick="document.getElementById('upload-input').click()">+</button>
     <input type="file" id="upload-input" accept="image/*" multiple style="display:none">
 </div>
 
 <div class="header-tools">
     <div class="row">
         <div class="input-group">
-            <label>惊爆</label><input type="text" id="sale-in" placeholder="0.00" oninput="saveInputCache()">
+            <label>惊爆</label><input type="text" id="sale-in" placeholder="0" oninput="saveInputCache()">
         </div>
         <div class="input-group">
-            <label>原价</label><input type="text" id="ori-in" placeholder="0.00" oninput="saveInputCache()">
+            <label>会员</label><input type="text" id="vip-in" placeholder="0" oninput="saveInputCache()">
+        </div>
+        <div class="input-group">
+            <label>原价</label><input type="text" id="ori-in" placeholder="0" oninput="saveInputCache()">
         </div>
         <button class="btn-red" onclick="doAdd('tag')">加价签</button>
-        <button class="btn-green" onclick="exportBatch()">保存全部</button>
     </div>
+    
     <div class="row">
-        <div class="input-group large">
-            <label>品名</label><input type="text" id="name-in" placeholder="商品名称" oninput="saveInputCache()">
+        <div class="input-group wide">
+            <label>品名</label><input type="text" id="name-in" placeholder="商品名" oninput="saveInputCache()">
         </div>
-        <div class="input-group large">
-            <label>备注</label><input type="text" id="note-in" placeholder="备注信息" oninput="saveInputCache()">
+        <div class="input-group wide">
+            <label>备注</label><input type="text" id="note-in" placeholder="备注" oninput="saveInputCache()">
         </div>
-        <button class="btn-red" style="padding: 8px 10px;" onclick="doAdd('note')">加备注</button>
+        <button class="btn-red" onclick="doAdd('note')">加备注</button>
+        <button class="btn-green" onclick="exportBatch()">保存</button>
     </div>
 </div>
 
@@ -82,12 +98,12 @@
     let isProcessing = false;
     const editor = document.getElementById('editor-node');
     const display = document.getElementById('main-display');
-    const loading = document.getElementById('loading-overlay');
 
     function saveInputCache() {
         if (curIdx === -1) return;
         images[curIdx].inputCache = {
             sale: document.getElementById('sale-in').value,
+            vip: document.getElementById('vip-in').value,
             ori: document.getElementById('ori-in').value,
             name: document.getElementById('name-in').value,
             note: document.getElementById('note-in').value
@@ -95,18 +111,13 @@
     }
 
     function restoreInputCache(idx) {
-        if (idx === -1) {
-            document.getElementById('sale-in').value = '';
-            document.getElementById('ori-in').value = '';
-            document.getElementById('name-in').value = '';
-            document.getElementById('note-in').value = '';
-            return;
-        }
-        const cache = images[idx].inputCache || { sale: '', ori: '', name: '', note: '' };
-        document.getElementById('sale-in').value = cache.sale;
-        document.getElementById('ori-in').value = cache.ori;
-        document.getElementById('name-in').value = cache.name;
-        document.getElementById('note-in').value = cache.note;
+        const cache = idx === -1 ? { sale:'', vip:'', ori:'', name:'', note:'' } : 
+                      (images[idx].inputCache || { sale:'', vip:'', ori:'', name:'', note:'' });
+        document.getElementById('sale-in').value = cache.sale || '';
+        document.getElementById('vip-in').value = cache.vip || '';
+        document.getElementById('ori-in').value = cache.ori || '';
+        document.getElementById('name-in').value = cache.name || '';
+        document.getElementById('note-in').value = cache.note || '';
     }
 
     document.getElementById('upload-input').addEventListener('change', async function(e) {
@@ -114,48 +125,31 @@
         const files = e.target.files;
         if (!files || files.length === 0) return;
         isProcessing = true;
-        loading.style.display = 'flex';
-        for (let i = 0; i < files.length; i++) {
-            try {
-                const dataUrl = await readFileAsync(files[i]);
-                images.push({ 
-                    src: dataUrl, 
-                    elements: [], 
-                    inputCache: { sale: '', ori: '', name: '', note: '' } 
-                });
-            } catch (err) { console.error(err); }
+        document.getElementById('loading-overlay').style.display = 'flex';
+        for (let file of files) {
+            const dataUrl = await new Promise(r => {
+                const fr = new FileReader(); fr.onload = (ev) => r(ev.target.result); fr.readAsDataURL(file);
+            });
+            images.push({ src: dataUrl, elements: [], inputCache: { sale:'', vip:'', ori:'', name:'', note:'' } });
         }
         updateThumbs();
         if (curIdx === -1 && images.length > 0) selectImg(0);
         this.value = ''; 
-        loading.style.display = 'none';
+        document.getElementById('loading-overlay').style.display = 'none';
         isProcessing = false;
     });
 
-    function readFileAsync(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => resolve(ev.target.result);
-            reader.onerror = (err) => reject(err);
-            reader.readAsDataURL(file);
-        });
-    }
-
     function updateThumbs() {
         const bar = document.getElementById('preview-bar');
-        const oldThumbs = bar.querySelectorAll('.thumb-item');
-        oldThumbs.forEach(t => t.remove());
-        
-        for (let i = 0; i < images.length; i++) {
+        bar.querySelectorAll('.thumb-item').forEach(t => t.remove());
+        images.forEach((img, i) => {
             const div = document.createElement('div');
             div.className = "thumb-item" + (i === curIdx ? " active" : "");
-            div.onclick = function() { selectImg(i); };
-            div.innerHTML = '<img src="'+images[i].src+'" class="thumb-img"><div class="thumb-del">×</div>';
-            div.querySelector('.thumb-del').onclick = function(e) {
-                e.stopPropagation(); delImg(i);
-            };
+            div.onclick = () => selectImg(i);
+            div.innerHTML = `<img src="${img.src}" class="thumb-img"><div class="thumb-del">×</div>`;
+            div.querySelector('.thumb-del').onclick = (e) => { e.stopPropagation(); delImg(i); };
             bar.insertBefore(div, document.getElementById('add-img-btn'));
-        }
+        });
         document.getElementById('hint').style.display = images.length ? 'none' : 'block';
     }
 
@@ -165,27 +159,17 @@
         display.src = images[i].src;
         editor.style.display = 'block';
         restoreInputCache(i);
-        const els = editor.querySelectorAll('.element');
-        els.forEach(el => el.remove());
+        editor.querySelectorAll('.element').forEach(el => el.remove());
         images[i].elements.forEach(elData => renderEl(elData));
         updateThumbs();
     }
 
-    // 重点修复的删除函数
     function delImg(i) {
         images.splice(i, 1);
         if(images.length === 0) { 
-            curIdx = -1; 
-            editor.style.display = 'none'; 
-            restoreInputCache(-1); 
-            // 手动彻底清理预览栏残存
-            const bar = document.getElementById('preview-bar');
-            bar.querySelectorAll('.thumb-item').forEach(t => t.remove());
-        } else { 
-            let next = i >= images.length ? images.length - 1 : i; 
-            curIdx = -1; 
-            selectImg(next); 
-        }
+            curIdx = -1; editor.style.display = 'none'; restoreInputCache(-1);
+            document.getElementById('preview-bar').querySelectorAll('.thumb-item').forEach(t => t.remove());
+        } else { selectImg(i >= images.length ? images.length - 1 : i); }
         updateThumbs();
     }
 
@@ -194,29 +178,25 @@
         const list = [];
         editor.querySelectorAll('.element').forEach(el => {
             list.push({
-                type: el.dataset.type,
-                x: el.style.left, y: el.style.top,
-                w: el.style.width, h: el.style.height,
-                name: el.dataset.name || '',
-                sale: el.dataset.sale || '',
-                ori: el.dataset.ori || '',
-                note: el.dataset.note || ''
+                type: el.dataset.type, x: el.style.left, y: el.style.top, w: el.style.width, h: el.style.height,
+                name: el.dataset.name, sale: el.dataset.sale, vip: el.dataset.vip, ori: el.dataset.ori, note: el.dataset.note
             });
         });
         images[curIdx].elements = list;
     }
 
     function doAdd(type) {
-        if(curIdx === -1) return alert("请先上传照片");
-        const nameVal = document.getElementById('name-in').value;
-        const saleVal = document.getElementById('sale-in').value;
-        const oriVal = document.getElementById('ori-in').value;
-        const noteVal = document.getElementById('note-in').value;
-
-        const conf = type === 'tag' ? 
-            { type, x:'20%', y:'20%', w:'240px', h:'210px', name:nameVal, sale:saleVal, ori:oriVal } :
-            { type, x:'20%', y:'20%', w:'160px', h:'60px', note:noteVal };
-        renderEl(conf);
+        if(curIdx === -1) return;
+        const c = {
+            type, x:'20%', y:'20%',
+            name: document.getElementById('name-in').value,
+            sale: document.getElementById('sale-in').value,
+            vip: document.getElementById('vip-in').value,
+            ori: document.getElementById('ori-in').value,
+            note: document.getElementById('note-in').value,
+            w: type==='tag'?'240px':'160px', h: type==='tag'?'210px':'60px'
+        };
+        renderEl(c);
         syncData();
     }
 
@@ -224,19 +204,30 @@
         const el = document.createElement('div');
         el.className = 'element';
         el.dataset.type = c.type;
-        el.style.left = c.x; el.style.top = c.y; el.style.width = c.w; el.style.height = c.h;
-
+        el.style.cssText = `left:${c.x};top:${c.y};width:${c.w};height:${c.h}`;
+        
         if(c.type === 'tag') {
-            el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.ori = c.ori;
+            el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.vip = c.vip; el.dataset.ori = c.ori;
+            // 核心逻辑：二选一显示
+            let priceLabel = "";
+            let priceVal = "";
+            if (c.sale) {
+                priceLabel = "惊爆价：";
+                priceVal = c.sale;
+            } else if (c.vip) {
+                priceLabel = "会员群价：";
+                priceVal = c.vip;
+            }
+
             let html = '<div class="tag-wrapper">';
-            if(c.name) html += '<div class="name-box">'+c.name+'</div>';
-            if(c.sale) html += '<div class="sale-box">惊爆价：'+c.sale+'</div>';
-            if(c.ori) html += '<div class="ori-box">原价：'+c.ori+'</div>';
+            if(c.name) html += `<div class="name-box">${c.name}</div>`;
+            if(priceVal) html += `<div class="sale-box">${priceLabel}${priceVal}</div>`;
+            if(c.ori) html += `<div class="ori-box">原价：${c.ori}</div>`;
             html += '</div><div class="resizer"></div><div class="delete-btn">×</div>';
             el.innerHTML = html;
         } else {
             el.dataset.note = c.note;
-            el.innerHTML = '<div class="note-wrapper">'+(c.note||'')+'</div><div class="resizer"></div><div class="delete-btn">×</div>';
+            el.innerHTML = `<div class="note-wrapper">${c.note||''}</div><div class="resizer"></div><div class="delete-btn">×</div>`;
         }
         editor.appendChild(el);
         bindEv(el);
@@ -248,7 +239,11 @@
         if(el.dataset.type === 'tag') {
             const n = el.querySelector('.name-box'), s = el.querySelector('.sale-box'), o = el.querySelector('.ori-box');
             if(n) n.style.fontSize = Math.min(h*0.12, (w/n.innerText.length)*1.0)+'px';
-            if(s) s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*1.0)+'px';
+            if(s) {
+                // 如果是"会员群价"，字符数多，字号比例调小一点
+                let ratio = s.innerText.includes("会员") ? 0.85 : 1.0;
+                s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*ratio)+'px';
+            }
             if(o) o.style.fontSize = Math.min(h*0.09, (w/o.innerText.length)*0.95)+'px';
         } else {
             const n = el.querySelector('.note-wrapper');
@@ -257,14 +252,13 @@
     }
 
     function bindEv(el) {
-        el.querySelector('.delete-btn').onclick = function(e) { e.stopPropagation(); el.remove(); syncData(); };
+        el.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); el.remove(); syncData(); };
         let dragging = false, resizing = false, sx, sy, sw, sh, sl, st;
         const onStart = (e) => {
             const t = e.touches ? e.touches[0] : e;
             resizing = e.target.classList.contains('resizer');
             dragging = !resizing;
-            sx = t.clientX; sy = t.clientY;
-            sw = el.offsetWidth; sh = el.offsetHeight;
+            sx = t.clientX; sy = t.clientY; sw = el.offsetWidth; sh = el.offsetHeight;
             sl = el.offsetLeft; st = el.offsetTop;
             document.addEventListener('mousemove', onMove);
             document.addEventListener('touchmove', onMove, {passive:false});
@@ -273,26 +267,18 @@
         };
         const onMove = (e) => {
             const t = e.touches ? e.touches[0] : e;
-            const dx = t.clientX - sx, dy = t.clientY - sy;
-            if(dragging) { el.style.left = sl+dx+'px'; el.style.top = st+dy+'px'; }
-            else if(resizing) {
-                el.style.width = Math.max(80, sw+dx)+'px'; el.style.height = Math.max(60, sh+dy)+'px'; fit(el);
-            }
+            if(dragging) { el.style.left = sl+(t.clientX-sx)+'px'; el.style.top = st+(t.clientY-sy)+'px'; }
+            else if(resizing) { el.style.width = Math.max(80, sw+(t.clientX-sx))+'px'; el.style.height = Math.max(60, sh+(t.clientY-sy))+'px'; fit(el); }
             if(e.cancelable) e.preventDefault();
         };
-        const onEnd = () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('touchmove', onMove);
-            syncData();
-        };
-        el.addEventListener('mousedown', onStart);
-        el.addEventListener('touchstart', onStart, {passive:false});
+        const onEnd = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('touchmove', onMove); syncData(); };
+        el.addEventListener('mousedown', onStart); el.addEventListener('touchstart', onStart, {passive:false});
     }
 
     async function exportBatch() {
         if(!images.length) return;
         syncData();
-        loading.style.display = 'flex';
+        document.getElementById('loading-overlay').style.display = 'flex';
         const canvas = document.getElementById('export-canvas');
         const ctx = canvas.getContext('2d');
         const tImg = new Image(); tImg.src = 'tag-template.png';
@@ -306,32 +292,38 @@
             ctx.drawImage(mImg, 0, 0);
             const r = mImg.width / display.offsetWidth;
 
-            for(let j=0; j<d.elements.length; j++) {
-                const e = d.elements[j];
+            for(let e of d.elements) {
                 const x=parseFloat(e.x)*r, y=parseFloat(e.y)*r, w=parseFloat(e.w)*r, h=parseFloat(e.h)*r;
                 if(e.type === 'tag') {
                     ctx.drawImage(tImg, x, y, w, h);
                     ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
-                    if(e.name) { ctx.font = '900 '+(h*0.12)+'px sans-serif'; ctx.fillText(e.name, x+w*0.5, y+h*0.38); }
-                    if(e.sale) { ctx.font = '900 '+(h*0.16)+'px sans-serif'; ctx.fillText("惊爆价："+e.sale, x+w*0.5, y+h*0.58); }
-                    if(e.ori) { ctx.textAlign = "left"; ctx.font = '900 '+(h*0.09)+'px sans-serif'; ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79); }
-                } else {
-                    if(e.note) {
-                        ctx.fillStyle = "#fff200"; ctx.fillRect(x,y,w,h);
-                        ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
-                        ctx.font = '900 '+(h*0.5)+'px sans-serif';
-                        ctx.fillText(e.note, x+w/2, y+h/2 + (h*0.5)/3);
+                    if(e.name) { ctx.font = `900 ${h*0.12}px sans-serif`; ctx.fillText(e.name, x+w*0.5, y+h*0.38); }
+                    
+                    // 导出时的二选一逻辑
+                    let pLabel = "", pVal = "";
+                    if(e.sale) { pLabel = "惊爆价："; pVal = e.sale; }
+                    else if(e.vip) { pLabel = "会员群价："; pVal = e.vip; }
+                    
+                    if(pVal) {
+                        let fSize = h * (pLabel.includes("会员") ? 0.14 : 0.16);
+                        ctx.font = `900 ${fSize}px sans-serif`;
+                        ctx.fillText(pLabel + pVal, x+w*0.5, y+h*0.58);
                     }
+                    if(e.ori) { ctx.textAlign = "left"; ctx.font = `900 ${h*0.09}px sans-serif`; ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79); }
+                } else if(e.note) {
+                    ctx.fillStyle = "#fff200"; ctx.fillRect(x,y,w,h);
+                    ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
+                    ctx.font = `900 ${h*0.5}px sans-serif`; ctx.fillText(e.note, x+w/2, y+h/2 + (h*0.5)/3);
                 }
             }
             const link = document.createElement('a');
-            link.download = "output_"+(new Date().getTime())+"_"+i+".png";
+            link.download = `output_${Date.now()}_${i}.png`;
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             await new Promise(r => setTimeout(r, 800));
         }
-        loading.style.display = 'none';
-        alert("全部导出完成！");
+        document.getElementById('loading-overlay').style.display = 'none';
+        alert("全部导出成功！");
     }
 </script>
 </body>
