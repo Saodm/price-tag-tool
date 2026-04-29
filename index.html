@@ -8,45 +8,59 @@
         :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; --input-bg: #2a2a2a; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
+        /* 预览栏 */
         #preview-bar { height: 85px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 10px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
         .thumb-item { position: relative; flex: 0 0 65px; height: 65px; border: 2px solid #444; border-radius: 8px; background: #222; }
         .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
-        .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; }
+        .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; cursor: pointer; }
 
+        /* 工具栏 */
         .header-tools { background: #1e1e1e; padding: 8px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #333; }
         .row { display: flex; gap: 5px; width: 100%; align-items: center; }
-        
         .input-group { flex: 1; display: flex; align-items: center; background: var(--input-bg); padding: 0 6px; border-radius: 6px; border: 1px solid #444; min-width: 0; }
-        .input-group.wide { flex: 1.5; }
         .input-group label { font-size: 10px; color: #666; margin-right: 3px; white-space: nowrap; }
         input { background: transparent; border: none; color: white; padding: 7px 0; width: 100%; outline: none; font-size: 13px; min-width: 0; }
-        
         button { border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
         .btn-red { background: var(--accent-red); color: white; }
         .btn-green { background: #27ae60; color: white; }
 
+        /* 工作区 */
         #workspace { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #151515; }
         .canvas-container { position: relative; line-height: 0; }
         #main-display { max-width: 95vw; max-height: 52vh; display: block; user-select: none; pointer-events: none; }
 
+        /* 元素样式 */
         .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
         .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
-        
         .name-box, .sale-box, .ori-box { position: absolute; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .name-box { top: 32%; left: 15%; width: 70%; height: 15%; }
         .sale-box { top: 48%; left: 15%; width: 70%; height: 20%; }
         .ori-box { top: 69%; left: 22%; width: 56%; height: 12%; justify-content: flex-start; }
         .note-wrapper { width: 100%; height: 100%; background-color: var(--note-yellow); color: var(--accent-red); font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
-
         .resizer { width: 30px; height: 30px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -15px; bottom: -15px; border-radius: 6px; z-index: 10; }
         .delete-btn { position: absolute; top: -15px; left: -15px; width: 30px; height: 30px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 30px; font-size: 20px; z-index: 10; border: 1px solid #fff; }
+
+        /* 结果展示浮层 */
+        #result-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding-top: 20px; }
+        #result-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .result-item { width: 90%; background: #222; border-radius: 10px; padding: 10px; text-align: center; }
+        .result-item img { width: 100%; border-radius: 5px; margin-bottom: 8px; }
+        .result-tip { font-size: 12px; color: #888; }
+        .close-overlay { position: absolute; top: 15px; right: 15px; background: #fff; color: #000; width: 30px; height: 30px; border-radius: 50%; text-align: center; line-height: 30px; font-weight: bold; cursor: pointer; }
+
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay"><div id="loading-text">正在导出图片...</div></div>
+<div id="loading-overlay"><div id="loading-text">正在生成图片...</div></div>
+
+<div id="result-overlay">
+    <div class="close-overlay" onclick="document.getElementById('result-overlay').style.display='none'">✕</div>
+    <div style="text-align: center; padding: 10px; font-weight: bold; color: var(--accent-red);">生成完成！长按下方图片保存到相册</div>
+    <div id="result-list"></div>
+</div>
 
 <div id="preview-bar">
     <button id="add-img-btn" style="flex:0 0 65px; height:65px; background:#222; color:#444; font-size:35px; border-radius:10px; border:2px dashed #333;" onclick="document.getElementById('upload-input').click()">+</button>
@@ -64,7 +78,7 @@
         <div class="input-group wide"><label>品名</label><input type="text" id="name-in" placeholder="商品名" oninput="saveInputCache()"></div>
         <div class="input-group wide"><label>备注</label><input type="text" id="note-in" placeholder="备注" oninput="saveInputCache()"></div>
         <button class="btn-red" onclick="doAdd('note')">加备注</button>
-        <button class="btn-green" onclick="exportBatch()">保存全部</button>
+        <button class="btn-green" onclick="exportBatch()">✅ 生成保存</button>
     </div>
 </div>
 
@@ -76,9 +90,7 @@
 <canvas id="export-canvas" style="display:none;"></canvas>
 
 <script>
-    let images = []; 
-    let curIdx = -1;
-    let isProcessing = false;
+    let images = []; let curIdx = -1; let isProcessing = false;
     const editor = document.getElementById('editor-node');
     const display = document.getElementById('main-display');
 
@@ -105,8 +117,7 @@
 
     document.getElementById('upload-input').addEventListener('change', async function(e) {
         if (isProcessing) return;
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
+        const files = e.target.files; if (!files.length) return;
         isProcessing = true;
         document.getElementById('loading-overlay').style.display = 'flex';
         for (let file of files) {
@@ -138,9 +149,7 @@
 
     function selectImg(i) {
         if(curIdx !== -1) syncData();
-        curIdx = i;
-        display.src = images[i].src;
-        editor.style.display = 'block';
+        curIdx = i; display.src = images[i].src; editor.style.display = 'block';
         restoreInputCache(i);
         editor.querySelectorAll('.element').forEach(el => el.remove());
         images[i].elements.forEach(elData => renderEl(elData));
@@ -149,10 +158,8 @@
 
     function delImg(i) {
         images.splice(i, 1);
-        if(images.length === 0) { 
-            curIdx = -1; editor.style.display = 'none'; restoreInputCache(-1);
-            document.getElementById('preview-bar').querySelectorAll('.thumb-item').forEach(t => t.remove());
-        } else { selectImg(i >= images.length ? images.length - 1 : i); }
+        if(!images.length) { curIdx = -1; editor.style.display = 'none'; restoreInputCache(-1); } 
+        else { selectImg(i >= images.length ? images.length - 1 : i); }
         updateThumbs();
     }
 
@@ -170,42 +177,36 @@
 
     function doAdd(type) {
         if(curIdx === -1) return;
-        const c = {
+        renderEl({
             type, x:'20%', y:'20%',
             name: document.getElementById('name-in').value,
             sale: document.getElementById('sale-in').value,
             vip: document.getElementById('vip-in').value,
             ori: document.getElementById('ori-in').value,
             note: document.getElementById('note-in').value,
-            w: type==='tag'?'200px':'120px', h: type==='tag'?'175px':'50px'
-        };
-        renderEl(c);
+            w: type==='tag'?'180px':'120px', h: type==='tag'?'160px':'50px'
+        });
         syncData();
     }
 
     function renderEl(c) {
         const el = document.createElement('div');
-        el.className = 'element';
-        el.dataset.type = c.type;
+        el.className = 'element'; el.dataset.type = c.type;
         el.style.cssText = `left:${c.x};top:${c.y};width:${c.w};height:${c.h}`;
-        
         if(c.type === 'tag') {
             el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.vip = c.vip; el.dataset.ori = c.ori;
             let pLabel = c.sale ? "惊爆价：" : (c.vip ? "会员群价：" : "");
             let pVal = c.sale || c.vip || "";
-            let html = '<div class="tag-wrapper">';
-            if(c.name) html += `<div class="name-box">${c.name}</div>`;
-            if(pVal) html += `<div class="sale-box">${pLabel}${pVal}</div>`;
-            if(c.ori) html += `<div class="ori-box">原价：${c.ori}</div>`;
-            html += '</div><div class="resizer"></div><div class="delete-btn">×</div>';
-            el.innerHTML = html;
+            el.innerHTML = `<div class="tag-wrapper">
+                ${c.name?`<div class="name-box">${c.name}</div>`:''}
+                ${pVal?`<div class="sale-box">${pLabel}${pVal}</div>`:''}
+                ${c.ori?`<div class="ori-box">原价：${c.ori}</div>`:''}
+            </div><div class="resizer"></div><div class="delete-btn">×</div>`;
         } else {
             el.dataset.note = c.note;
             el.innerHTML = `<div class="note-wrapper">${c.note||''}</div><div class="resizer"></div><div class="delete-btn">×</div>`;
         }
-        editor.appendChild(el);
-        bindEv(el);
-        fit(el);
+        editor.appendChild(el); bindEv(el); fit(el);
     }
 
     function fit(el) {
@@ -213,10 +214,7 @@
         if(el.dataset.type === 'tag') {
             const n = el.querySelector('.name-box'), s = el.querySelector('.sale-box'), o = el.querySelector('.ori-box');
             if(n) n.style.fontSize = Math.min(h*0.12, (w/n.innerText.length)*1.0)+'px';
-            if(s) {
-                let ratio = s.innerText.includes("会员") ? 0.85 : 1.0;
-                s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*ratio)+'px';
-            }
+            if(s) s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*(s.innerText.includes("会员")?0.85:1.0))+'px';
             if(o) o.style.fontSize = Math.min(h*0.09, (w/o.innerText.length)*0.95)+'px';
         } else {
             const n = el.querySelector('.note-wrapper');
@@ -229,23 +227,18 @@
         let dragging = false, resizing = false, sx, sy, sw, sh, sl, st;
         const onStart = (e) => {
             const t = e.touches ? e.touches[0] : e;
-            resizing = e.target.classList.contains('resizer');
-            dragging = !resizing;
+            resizing = e.target.classList.contains('resizer'); dragging = !resizing;
             sx = t.clientX; sy = t.clientY; sw = el.offsetWidth; sh = el.offsetHeight;
             sl = el.offsetLeft; st = el.offsetTop;
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('touchmove', onMove, {passive:false});
-            document.addEventListener('mouseup', onEnd);
-            document.addEventListener('touchend', onEnd);
+            document.addEventListener('mousemove', onMove); document.addEventListener('touchmove', onMove, {passive:false});
+            document.addEventListener('mouseup', onEnd); document.addEventListener('touchend', onEnd);
         };
         const onMove = (e) => {
             const t = e.touches ? e.touches[0] : e;
             if(dragging) { el.style.left = sl+(t.clientX-sx)+'px'; el.style.top = st+(t.clientY-sy)+'px'; }
             else if(resizing) { 
-                // 重点修复：最小尺寸改为 30px
                 el.style.width = Math.max(30, sw+(t.clientX-sx))+'px'; 
-                el.style.height = Math.max(30, sh+(t.clientY-sy))+'px'; 
-                fit(el); 
+                el.style.height = Math.max(30, sh+(t.clientY-sy))+'px'; fit(el); 
             }
             if(e.cancelable) e.preventDefault();
         };
@@ -253,13 +246,15 @@
         el.addEventListener('mousedown', onStart); el.addEventListener('touchstart', onStart, {passive:false});
     }
 
-    // 重点修复：多图批量导出逻辑
+    // 🚀 核心改进：生成预览图列表，引导长按保存
     async function exportBatch() {
         if(!images.length) return;
         syncData();
         const loading = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
+        const resOverlay = document.getElementById('result-overlay');
+        const resList = document.getElementById('result-list');
         loading.style.display = 'flex';
+        resList.innerHTML = '';
         
         const canvas = document.getElementById('export-canvas');
         const ctx = canvas.getContext('2d');
@@ -267,17 +262,13 @@
         await new Promise(r => tImg.onload = r);
 
         for(let i=0; i<images.length; i++) {
-            loadingText.innerText = `正在处理第 ${i+1} / ${images.length} 张...`;
             const d = images[i];
-            const mImg = new Image();
-            mImg.src = d.src;
+            const mImg = new Image(); mImg.src = d.src;
             await new Promise(r => mImg.onload = r);
             
-            canvas.width = mImg.width; 
-            canvas.height = mImg.height;
+            canvas.width = mImg.width; canvas.height = mImg.height;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(mImg, 0, 0);
-            
             const r = mImg.width / display.offsetWidth;
 
             for(let e of d.elements) {
@@ -289,8 +280,7 @@
                     let pLabel = e.sale ? "惊爆价：" : (e.vip ? "会员群价：" : "");
                     let pVal = e.sale || e.vip || "";
                     if(pVal) {
-                        let fSize = h * (pLabel.includes("会员") ? 0.14 : 0.16);
-                        ctx.font = `900 ${fSize}px sans-serif`;
+                        ctx.font = `900 ${h*(pLabel.includes("会员")?0.14:0.16)}px sans-serif`;
                         ctx.fillText(pLabel + pVal, x+w*0.5, y+h*0.58);
                     }
                     if(e.ori) { ctx.textAlign = "left"; ctx.font = `900 ${h*0.09}px sans-serif`; ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79); }
@@ -301,20 +291,19 @@
                 }
             }
             
-            // 解决多图下载拦截的关键：转换为 Blob 并利用 a 标签下载，增加延迟
-            const dataUrl = canvas.toDataURL('image/png', 1.0);
-            const link = document.createElement('a');
-            link.download = `price_tag_${Date.now()}_${i+1}.png`;
-            link.href = dataUrl;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // 强制等待 600ms，让浏览器有时间处理下载流
-            await new Promise(r => setTimeout(r, 600));
+            // 将结果渲染到浮层中
+            const finalImg = canvas.toDataURL('image/png', 1.0);
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `
+                <img src="${finalImg}">
+                <div class="result-tip">图片 ${i+1}：长按上方图保存</div>
+            `;
+            resList.appendChild(item);
         }
+        
         loading.style.display = 'none';
-        alert("全部导出指令已发出，请检查下载记录！");
+        resOverlay.style.display = 'flex';
     }
 </script>
 </body>
