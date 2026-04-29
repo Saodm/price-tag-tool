@@ -8,14 +8,12 @@
         :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; --input-bg: #2a2a2a; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 预览栏 */
         #preview-bar { height: 85px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 10px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
         .thumb-item { position: relative; flex: 0 0 65px; height: 65px; border: 2px solid #444; border-radius: 8px; background: #222; }
         .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
         .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; }
 
-        /* 工具栏：优化 5 框布局 */
         .header-tools { background: #1e1e1e; padding: 8px; display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #333; }
         .row { display: flex; gap: 5px; width: 100%; align-items: center; }
         
@@ -28,29 +26,27 @@
         .btn-red { background: var(--accent-red); color: white; }
         .btn-green { background: #27ae60; color: white; }
 
-        /* 工作区 */
         #workspace { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #151515; }
         .canvas-container { position: relative; line-height: 0; }
         #main-display { max-width: 95vw; max-height: 52vh; display: block; user-select: none; pointer-events: none; }
 
-        /* 渲染元素 */
         .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
         .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
         
-        .name-box { position: absolute; top: 32%; left: 15%; width: 70%; height: 15%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
-        /* 惊爆价/会员群价 共享同一个位置 */
-        .sale-box { position: absolute; top: 48%; left: 15%; width: 70%; height: 20%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
-        .ori-box { position: absolute; top: 69%; left: 22%; width: 56%; height: 12%; display: flex; align-items: center; justify-content: flex-start; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
+        .name-box, .sale-box, .ori-box { position: absolute; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
+        .name-box { top: 32%; left: 15%; width: 70%; height: 15%; }
+        .sale-box { top: 48%; left: 15%; width: 70%; height: 20%; }
+        .ori-box { top: 69%; left: 22%; width: 56%; height: 12%; justify-content: flex-start; }
         .note-wrapper { width: 100%; height: 100%; background-color: var(--note-yellow); color: var(--accent-red); font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
 
-        .resizer { width: 34px; height: 34px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -17px; bottom: -17px; border-radius: 8px; z-index: 10; }
-        .delete-btn { position: absolute; top: -17px; left: -17px; width: 34px; height: 34px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 34px; font-size: 22px; z-index: 10; border: 1px solid #fff; }
+        .resizer { width: 30px; height: 30px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -15px; bottom: -15px; border-radius: 6px; z-index: 10; }
+        .delete-btn { position: absolute; top: -15px; left: -15px; width: 30px; height: 30px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 30px; font-size: 20px; z-index: 10; border: 1px solid #fff; }
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay">正在处理中...</div>
+<div id="loading-overlay"><div id="loading-text">正在导出图片...</div></div>
 
 <div id="preview-bar">
     <button id="add-img-btn" style="flex:0 0 65px; height:65px; background:#222; color:#444; font-size:35px; border-radius:10px; border:2px dashed #333;" onclick="document.getElementById('upload-input').click()">+</button>
@@ -59,38 +55,25 @@
 
 <div class="header-tools">
     <div class="row">
-        <div class="input-group">
-            <label>惊爆</label><input type="text" id="sale-in" placeholder="0" oninput="saveInputCache()">
-        </div>
-        <div class="input-group">
-            <label>会员</label><input type="text" id="vip-in" placeholder="0" oninput="saveInputCache()">
-        </div>
-        <div class="input-group">
-            <label>原价</label><input type="text" id="ori-in" placeholder="0" oninput="saveInputCache()">
-        </div>
+        <div class="input-group"><label>惊爆</label><input type="text" id="sale-in" placeholder="0" oninput="saveInputCache()"></div>
+        <div class="input-group"><label>会员</label><input type="text" id="vip-in" placeholder="0" oninput="saveInputCache()"></div>
+        <div class="input-group"><label>原价</label><input type="text" id="ori-in" placeholder="0" oninput="saveInputCache()"></div>
         <button class="btn-red" onclick="doAdd('tag')">加价签</button>
     </div>
-    
     <div class="row">
-        <div class="input-group wide">
-            <label>品名</label><input type="text" id="name-in" placeholder="商品名" oninput="saveInputCache()">
-        </div>
-        <div class="input-group wide">
-            <label>备注</label><input type="text" id="note-in" placeholder="备注" oninput="saveInputCache()">
-        </div>
+        <div class="input-group wide"><label>品名</label><input type="text" id="name-in" placeholder="商品名" oninput="saveInputCache()"></div>
+        <div class="input-group wide"><label>备注</label><input type="text" id="note-in" placeholder="备注" oninput="saveInputCache()"></div>
         <button class="btn-red" onclick="doAdd('note')">加备注</button>
-        <button class="btn-green" onclick="exportBatch()">保存</button>
+        <button class="btn-green" onclick="exportBatch()">保存全部</button>
     </div>
 </div>
 
 <div id="workspace">
-    <div class="canvas-container" id="editor-node" style="display:none;">
-        <img id="main-display" src="">
-    </div>
+    <div class="canvas-container" id="editor-node" style="display:none;"><img id="main-display" src=""></div>
     <div id="hint" style="color:#444; text-align:center;">请上传图片开始</div>
 </div>
 
-<canvas id="export-canvas"></canvas>
+<canvas id="export-canvas" style="display:none;"></canvas>
 
 <script>
     let images = []; 
@@ -194,7 +177,7 @@
             vip: document.getElementById('vip-in').value,
             ori: document.getElementById('ori-in').value,
             note: document.getElementById('note-in').value,
-            w: type==='tag'?'240px':'160px', h: type==='tag'?'210px':'60px'
+            w: type==='tag'?'200px':'120px', h: type==='tag'?'175px':'50px'
         };
         renderEl(c);
         syncData();
@@ -208,20 +191,11 @@
         
         if(c.type === 'tag') {
             el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.vip = c.vip; el.dataset.ori = c.ori;
-            // 核心逻辑：二选一显示
-            let priceLabel = "";
-            let priceVal = "";
-            if (c.sale) {
-                priceLabel = "惊爆价：";
-                priceVal = c.sale;
-            } else if (c.vip) {
-                priceLabel = "会员群价：";
-                priceVal = c.vip;
-            }
-
+            let pLabel = c.sale ? "惊爆价：" : (c.vip ? "会员群价：" : "");
+            let pVal = c.sale || c.vip || "";
             let html = '<div class="tag-wrapper">';
             if(c.name) html += `<div class="name-box">${c.name}</div>`;
-            if(priceVal) html += `<div class="sale-box">${priceLabel}${priceVal}</div>`;
+            if(pVal) html += `<div class="sale-box">${pLabel}${pVal}</div>`;
             if(c.ori) html += `<div class="ori-box">原价：${c.ori}</div>`;
             html += '</div><div class="resizer"></div><div class="delete-btn">×</div>';
             el.innerHTML = html;
@@ -240,7 +214,6 @@
             const n = el.querySelector('.name-box'), s = el.querySelector('.sale-box'), o = el.querySelector('.ori-box');
             if(n) n.style.fontSize = Math.min(h*0.12, (w/n.innerText.length)*1.0)+'px';
             if(s) {
-                // 如果是"会员群价"，字符数多，字号比例调小一点
                 let ratio = s.innerText.includes("会员") ? 0.85 : 1.0;
                 s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*ratio)+'px';
             }
@@ -268,28 +241,43 @@
         const onMove = (e) => {
             const t = e.touches ? e.touches[0] : e;
             if(dragging) { el.style.left = sl+(t.clientX-sx)+'px'; el.style.top = st+(t.clientY-sy)+'px'; }
-            else if(resizing) { el.style.width = Math.max(80, sw+(t.clientX-sx))+'px'; el.style.height = Math.max(60, sh+(t.clientY-sy))+'px'; fit(el); }
+            else if(resizing) { 
+                // 重点修复：最小尺寸改为 30px
+                el.style.width = Math.max(30, sw+(t.clientX-sx))+'px'; 
+                el.style.height = Math.max(30, sh+(t.clientY-sy))+'px'; 
+                fit(el); 
+            }
             if(e.cancelable) e.preventDefault();
         };
         const onEnd = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('touchmove', onMove); syncData(); };
         el.addEventListener('mousedown', onStart); el.addEventListener('touchstart', onStart, {passive:false});
     }
 
+    // 重点修复：多图批量导出逻辑
     async function exportBatch() {
         if(!images.length) return;
         syncData();
-        document.getElementById('loading-overlay').style.display = 'flex';
+        const loading = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        loading.style.display = 'flex';
+        
         const canvas = document.getElementById('export-canvas');
         const ctx = canvas.getContext('2d');
         const tImg = new Image(); tImg.src = 'tag-template.png';
         await new Promise(r => tImg.onload = r);
 
         for(let i=0; i<images.length; i++) {
+            loadingText.innerText = `正在处理第 ${i+1} / ${images.length} 张...`;
             const d = images[i];
-            const mImg = new Image(); mImg.src = d.src;
+            const mImg = new Image();
+            mImg.src = d.src;
             await new Promise(r => mImg.onload = r);
-            canvas.width = mImg.width; canvas.height = mImg.height;
+            
+            canvas.width = mImg.width; 
+            canvas.height = mImg.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(mImg, 0, 0);
+            
             const r = mImg.width / display.offsetWidth;
 
             for(let e of d.elements) {
@@ -298,12 +286,8 @@
                     ctx.drawImage(tImg, x, y, w, h);
                     ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
                     if(e.name) { ctx.font = `900 ${h*0.12}px sans-serif`; ctx.fillText(e.name, x+w*0.5, y+h*0.38); }
-                    
-                    // 导出时的二选一逻辑
-                    let pLabel = "", pVal = "";
-                    if(e.sale) { pLabel = "惊爆价："; pVal = e.sale; }
-                    else if(e.vip) { pLabel = "会员群价："; pVal = e.vip; }
-                    
+                    let pLabel = e.sale ? "惊爆价：" : (e.vip ? "会员群价：" : "");
+                    let pVal = e.sale || e.vip || "";
                     if(pVal) {
                         let fSize = h * (pLabel.includes("会员") ? 0.14 : 0.16);
                         ctx.font = `900 ${fSize}px sans-serif`;
@@ -316,14 +300,21 @@
                     ctx.font = `900 ${h*0.5}px sans-serif`; ctx.fillText(e.note, x+w/2, y+h/2 + (h*0.5)/3);
                 }
             }
+            
+            // 解决多图下载拦截的关键：转换为 Blob 并利用 a 标签下载，增加延迟
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
-            link.download = `output_${Date.now()}_${i}.png`;
-            link.href = canvas.toDataURL('image/png', 1.0);
+            link.download = `price_tag_${Date.now()}_${i+1}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
             link.click();
-            await new Promise(r => setTimeout(r, 800));
+            document.body.removeChild(link);
+            
+            // 强制等待 600ms，让浏览器有时间处理下载流
+            await new Promise(r => setTimeout(r, 600));
         }
-        document.getElementById('loading-overlay').style.display = 'none';
-        alert("全部导出成功！");
+        loading.style.display = 'none';
+        alert("全部导出指令已发出，请检查下载记录！");
     }
 </script>
 </body>
