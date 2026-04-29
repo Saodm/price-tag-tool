@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>价签工具</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="toolbar">
+    <input type="file" id="imageInput">
+
+    <input type="text" id="originalPrice" placeholder="原价（可选）">
+    <input type="text" id="salePrice" placeholder="惊爆价（可选）">
+    <button id="addTagBtn">添加价签</button>
+
+    <input type="text" id="remark" placeholder="备注（可选）">
+    <button id="addRemarkBtn">添加备注</button>
+</div>
+
+<div id="canvasContainer">
+    <img id="mainImage">
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
