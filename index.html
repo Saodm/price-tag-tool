@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>批量价签-数据联动版</title>
+    <title>价签添加工具</title>
     <style>
         :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; --input-bg: #2a2a2a; }
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -54,7 +54,7 @@
             <label>原价</label><input type="text" id="ori-in" placeholder="0.00" oninput="saveInputCache()">
         </div>
         <button class="btn-red" onclick="doAdd('tag')">加价签</button>
-        <button class="btn-green" onclick="exportBatch()">💾 保存全部</button>
+        <button class="btn-green" onclick="exportBatch()">保存全部</button>
     </div>
     <div class="row">
         <div class="input-group large">
@@ -84,7 +84,6 @@
     const display = document.getElementById('main-display');
     const loading = document.getElementById('loading-overlay');
 
-    // 输入框实时保存到当前图片的缓存中
     function saveInputCache() {
         if (curIdx === -1) return;
         images[curIdx].inputCache = {
@@ -95,8 +94,14 @@
         };
     }
 
-    // 切换图片时恢复输入框内容
     function restoreInputCache(idx) {
+        if (idx === -1) {
+            document.getElementById('sale-in').value = '';
+            document.getElementById('ori-in').value = '';
+            document.getElementById('name-in').value = '';
+            document.getElementById('note-in').value = '';
+            return;
+        }
         const cache = images[idx].inputCache || { sale: '', ori: '', name: '', note: '' };
         document.getElementById('sale-in').value = cache.sale;
         document.getElementById('ori-in').value = cache.ori;
@@ -113,7 +118,6 @@
         for (let i = 0; i < files.length; i++) {
             try {
                 const dataUrl = await readFileAsync(files[i]);
-                // 初始化时增加 inputCache
                 images.push({ 
                     src: dataUrl, 
                     elements: [], 
@@ -140,7 +144,8 @@
     function updateThumbs() {
         const bar = document.getElementById('preview-bar');
         const oldThumbs = bar.querySelectorAll('.thumb-item');
-        for (let i = 0; i < oldThumbs.length; i++) oldThumbs[i].remove();
+        oldThumbs.forEach(t => t.remove());
+        
         for (let i = 0; i < images.length; i++) {
             const div = document.createElement('div');
             div.className = "thumb-item" + (i === curIdx ? " active" : "");
@@ -155,26 +160,27 @@
     }
 
     function selectImg(i) {
-        if(curIdx !== -1) syncData(); // 同步旧图的元素数据
+        if(curIdx !== -1) syncData();
         curIdx = i;
         display.src = images[i].src;
         editor.style.display = 'block';
-        
-        // 恢复当前图特有的输入内容
         restoreInputCache(i);
-
         const els = editor.querySelectorAll('.element');
-        for(let j=0; j<els.length; j++) els[j].remove();
-        for(let k=0; k<images[i].elements.length; k++) renderEl(images[i].elements[k]);
+        els.forEach(el => el.remove());
+        images[i].elements.forEach(elData => renderEl(elData));
         updateThumbs();
     }
 
+    // 重点修复的删除函数
     function delImg(i) {
         images.splice(i, 1);
         if(images.length === 0) { 
             curIdx = -1; 
             editor.style.display = 'none'; 
-            restoreInputCache(-1); // 重置输入框
+            restoreInputCache(-1); 
+            // 手动彻底清理预览栏残存
+            const bar = document.getElementById('preview-bar');
+            bar.querySelectorAll('.thumb-item').forEach(t => t.remove());
         } else { 
             let next = i >= images.length ? images.length - 1 : i; 
             curIdx = -1; 
@@ -186,9 +192,7 @@
     function syncData() {
         if(curIdx === -1) return;
         const list = [];
-        const els = editor.querySelectorAll('.element');
-        for(let i=0; i<els.length; i++) {
-            const el = els[i];
+        editor.querySelectorAll('.element').forEach(el => {
             list.push({
                 type: el.dataset.type,
                 x: el.style.left, y: el.style.top,
@@ -198,7 +202,7 @@
                 ori: el.dataset.ori || '',
                 note: el.dataset.note || ''
             });
-        }
+        });
         images[curIdx].elements = list;
     }
 
@@ -234,7 +238,6 @@
             el.dataset.note = c.note;
             el.innerHTML = '<div class="note-wrapper">'+(c.note||'')+'</div><div class="resizer"></div><div class="delete-btn">×</div>';
         }
-
         editor.appendChild(el);
         bindEv(el);
         fit(el);
@@ -309,19 +312,9 @@
                 if(e.type === 'tag') {
                     ctx.drawImage(tImg, x, y, w, h);
                     ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
-                    if(e.name) {
-                        ctx.font = '900 '+(h*0.12)+'px sans-serif';
-                        ctx.fillText(e.name, x+w*0.5, y+h*0.38);
-                    }
-                    if(e.sale) {
-                        ctx.font = '900 '+(h*0.16)+'px sans-serif';
-                        ctx.fillText("惊爆价："+e.sale, x+w*0.5, y+h*0.58);
-                    }
-                    if(e.ori) {
-                        ctx.textAlign = "left";
-                        ctx.font = '900 '+(h*0.09)+'px sans-serif';
-                        ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79);
-                    }
+                    if(e.name) { ctx.font = '900 '+(h*0.12)+'px sans-serif'; ctx.fillText(e.name, x+w*0.5, y+h*0.38); }
+                    if(e.sale) { ctx.font = '900 '+(h*0.16)+'px sans-serif'; ctx.fillText("惊爆价："+e.sale, x+w*0.5, y+h*0.58); }
+                    if(e.ori) { ctx.textAlign = "left"; ctx.font = '900 '+(h*0.09)+'px sans-serif'; ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79); }
                 } else {
                     if(e.note) {
                         ctx.fillStyle = "#fff200"; ctx.fillRect(x,y,w,h);
