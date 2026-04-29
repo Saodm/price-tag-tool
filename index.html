@@ -30,7 +30,7 @@
         .canvas-container { position: relative; line-height: 0; }
         #main-display { max-width: 95vw; max-height: 52vh; display: block; user-select: none; pointer-events: none; }
 
-        /* 元素样式 */
+        /* 元素 */
         .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
         .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
         .name-box, .sale-box, .ori-box { position: absolute; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
@@ -43,22 +43,25 @@
 
         /* 结果展示浮层 */
         #result-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; padding-top: 20px; }
-        #result-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .result-item { width: 90%; background: #222; border-radius: 10px; padding: 10px; text-align: center; }
-        .result-item img { width: 100%; border-radius: 5px; margin-bottom: 8px; }
-        .result-tip { font-size: 12px; color: #888; }
-        .close-overlay { position: absolute; top: 15px; right: 15px; background: #fff; color: #000; width: 30px; height: 30px; border-radius: 50%; text-align: center; line-height: 30px; font-weight: bold; cursor: pointer; }
+        #result-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 25px; align-items: center; }
+        .result-item { width: 90%; background: #222; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #333; }
+        .result-item img { width: 100%; border-radius: 5px; margin-bottom: 12px; border: 1px solid #444; }
+        .btn-download { display: inline-block; background: #27ae60; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; margin-top: 5px; }
+        .close-overlay { position: absolute; top: 15px; right: 15px; background: #fff; color: #000; width: 35px; height: 35px; border-radius: 50%; text-align: center; line-height: 35px; font-weight: bold; cursor: pointer; z-index: 1001; }
 
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay"><div id="loading-text">正在生成图片...</div></div>
+<div id="loading-overlay"><div id="loading-text">正在准备预览图...</div></div>
 
 <div id="result-overlay">
     <div class="close-overlay" onclick="document.getElementById('result-overlay').style.display='none'">✕</div>
-    <div style="text-align: center; padding: 10px; font-weight: bold; color: var(--accent-red);">生成完成！长按下方图片保存到相册</div>
+    <div style="text-align: center; padding: 10px 20px; font-weight: bold; color: #fff;">
+        生成成功！<br>
+        <span style="font-size: 12px; font-weight: normal; color: #aaa;">点击按钮下载，或长按图片保存</span>
+    </div>
     <div id="result-list"></div>
 </div>
 
@@ -78,7 +81,7 @@
         <div class="input-group wide"><label>品名</label><input type="text" id="name-in" placeholder="商品名" oninput="saveInputCache()"></div>
         <div class="input-group wide"><label>备注</label><input type="text" id="note-in" placeholder="备注" oninput="saveInputCache()"></div>
         <button class="btn-red" onclick="doAdd('note')">加备注</button>
-        <button class="btn-green" onclick="exportBatch()">✅ 生成保存</button>
+        <button class="btn-green" onclick="exportBatch()">确认生成</button>
     </div>
 </div>
 
@@ -246,7 +249,6 @@
         el.addEventListener('mousedown', onStart); el.addEventListener('touchstart', onStart, {passive:false});
     }
 
-    // 🚀 核心改进：生成预览图列表，引导长按保存
     async function exportBatch() {
         if(!images.length) return;
         syncData();
@@ -291,13 +293,17 @@
                 }
             }
             
-            // 将结果渲染到浮层中
-            const finalImg = canvas.toDataURL('image/png', 1.0);
+            // 🚀 核心逻辑：为每张图创建独立下载链接
+            const finalDataUrl = canvas.toDataURL('image/png', 1.0);
             const item = document.createElement('div');
             item.className = 'result-item';
+            
+            const fileName = `价签_${Date.now()}_${i+1}.png`;
+            
             item.innerHTML = `
-                <img src="${finalImg}">
-                <div class="result-tip">图片 ${i+1}：长按上方图保存</div>
+                <img src="${finalDataUrl}">
+                <div style="margin-bottom: 5px; font-size: 13px; color: #eee;">图片 ${i+1}</div>
+                <a href="${finalDataUrl}" download="${fileName}" class="btn-download">⬇️ 下载此图</a>
             `;
             resList.appendChild(item);
         }
