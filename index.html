@@ -3,50 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>批量价签-视线无阻版</title>
+    <title>批量价签-数据联动版</title>
     <style>
         :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; --input-bg: #2a2a2a; }
-        
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
         #preview-bar { height: 90px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 12px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
         .thumb-item { position: relative; flex: 0 0 70px; height: 70px; border: 2px solid #444; border-radius: 8px; background: #222; }
         .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
         .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; }
-
-        /* 工具栏重构 */
         .header-tools { background: #1e1e1e; padding: 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #333; }
         .row { display: flex; gap: 6px; width: 100%; align-items: center; }
-        
-        /* 比例调整：价格框占 1，名称备注占 2 */
         .input-group { flex: 1; display: flex; align-items: center; background: var(--input-bg); padding: 0 8px; border-radius: 6px; border: 1px solid #444; }
         .input-group.large { flex: 2; } 
-        
         .input-group label { font-size: 11px; color: #777; margin-right: 4px; white-space: nowrap; }
         input { background: transparent; border: none; color: white; padding: 8px 0; width: 100%; outline: none; font-size: 14px; }
         input::placeholder { color: #555; }
-
-        /* 按钮瘦身 */
         button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap; }
         .btn-red { background: var(--accent-red); color: white; }
         .btn-green { background: #27ae60; color: white; padding: 8px 10px; }
-
         #workspace { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #151515; }
         .canvas-container { position: relative; line-height: 0; }
         #main-display { max-width: 95vw; max-height: 55vh; display: block; user-select: none; pointer-events: none; }
-
         .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
         .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
-        
         .name-box { position: absolute; top: 32%; left: 15%; width: 70%; height: 15%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .sale-box { position: absolute; top: 48%; left: 15%; width: 70%; height: 20%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .ori-box { position: absolute; top: 69%; left: 22%; width: 56%; height: 12%; display: flex; align-items: center; justify-content: flex-start; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
         .note-wrapper { width: 100%; height: 100%; background-color: var(--note-yellow); color: var(--accent-red); font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
-
         .resizer { width: 34px; height: 34px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -17px; bottom: -17px; border-radius: 8px; z-index: 10; }
         .delete-btn { position: absolute; top: -17px; left: -17px; width: 34px; height: 34px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 34px; font-size: 22px; z-index: 10; border: 1px solid #fff; }
-        
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
     </style>
 </head>
@@ -62,21 +48,20 @@
 <div class="header-tools">
     <div class="row">
         <div class="input-group">
-            <label>惊爆</label><input type="text" id="sale-in" placeholder="0.00">
+            <label>惊爆</label><input type="text" id="sale-in" placeholder="0.00" oninput="saveInputCache()">
         </div>
         <div class="input-group">
-            <label>原价</label><input type="text" id="ori-in" placeholder="0.00">
+            <label>原价</label><input type="text" id="ori-in" placeholder="0.00" oninput="saveInputCache()">
         </div>
         <button class="btn-red" onclick="doAdd('tag')">加价签</button>
         <button class="btn-green" onclick="exportBatch()">💾 保存全部</button>
     </div>
-    
     <div class="row">
         <div class="input-group large">
-            <label>品名</label><input type="text" id="name-in" placeholder="输入商品名称">
+            <label>品名</label><input type="text" id="name-in" placeholder="商品名称" oninput="saveInputCache()">
         </div>
         <div class="input-group large">
-            <label>备注</label><input type="text" id="note-in" placeholder="输入备注">
+            <label>备注</label><input type="text" id="note-in" placeholder="备注信息" oninput="saveInputCache()">
         </div>
         <button class="btn-red" style="padding: 8px 10px;" onclick="doAdd('note')">加备注</button>
     </div>
@@ -99,49 +84,26 @@
     const display = document.getElementById('main-display');
     const loading = document.getElementById('loading-overlay');
 
-    // ... (此处保持之前版本稳定的 JS 逻辑不变，包括 readFileAsync, updateThumbs, selectImg, delImg, syncData 等) ...
-    // 为了节省篇幅，确保你之前运行正常的脚本函数全部保留
-
-    // 核心 doAdd 函数（保持空值不显示的逻辑）
-    function doAdd(type) {
-        if(curIdx === -1) return alert("请先上传照片");
-        const nameVal = document.getElementById('name-in').value;
-        const saleVal = document.getElementById('sale-in').value;
-        const oriVal = document.getElementById('ori-in').value;
-        const noteVal = document.getElementById('note-in').value;
-
-        const conf = type === 'tag' ? 
-            { type, x:'20%', y:'20%', w:'240px', h:'210px', name:nameVal, sale:saleVal, ori:oriVal } :
-            { type, x:'20%', y:'20%', w:'160px', h:'60px', note:noteVal };
-        renderEl(conf);
-        syncData();
+    // 输入框实时保存到当前图片的缓存中
+    function saveInputCache() {
+        if (curIdx === -1) return;
+        images[curIdx].inputCache = {
+            sale: document.getElementById('sale-in').value,
+            ori: document.getElementById('ori-in').value,
+            name: document.getElementById('name-in').value,
+            note: document.getElementById('note-in').value
+        };
     }
 
-    function renderEl(c) {
-        const el = document.createElement('div');
-        el.className = 'element';
-        el.dataset.type = c.type;
-        el.style.left = c.x; el.style.top = c.y; el.style.width = c.w; el.style.height = c.h;
-
-        if(c.type === 'tag') {
-            el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.ori = c.ori;
-            let html = '<div class="tag-wrapper">';
-            if(c.name) html += '<div class="name-box">'+c.name+'</div>';
-            if(c.sale) html += '<div class="sale-box">惊爆价：'+c.sale+'</div>';
-            if(c.ori) html += '<div class="ori-box">原价：'+c.ori+'</div>';
-            html += '</div><div class="resizer"></div><div class="delete-btn">×</div>';
-            el.innerHTML = html;
-        } else {
-            el.dataset.note = c.note;
-            el.innerHTML = '<div class="note-wrapper">'+(c.note||'')+'</div><div class="resizer"></div><div class="delete-btn">×</div>';
-        }
-
-        editor.appendChild(el);
-        bindEv(el);
-        fit(el);
+    // 切换图片时恢复输入框内容
+    function restoreInputCache(idx) {
+        const cache = images[idx].inputCache || { sale: '', ori: '', name: '', note: '' };
+        document.getElementById('sale-in').value = cache.sale;
+        document.getElementById('ori-in').value = cache.ori;
+        document.getElementById('name-in').value = cache.name;
+        document.getElementById('note-in').value = cache.note;
     }
 
-    // 绑定事件和图片处理（这里沿用上个版本的稳定逻辑）
     document.getElementById('upload-input').addEventListener('change', async function(e) {
         if (isProcessing) return;
         const files = e.target.files;
@@ -151,7 +113,12 @@
         for (let i = 0; i < files.length; i++) {
             try {
                 const dataUrl = await readFileAsync(files[i]);
-                images.push({ src: dataUrl, elements: [] });
+                // 初始化时增加 inputCache
+                images.push({ 
+                    src: dataUrl, 
+                    elements: [], 
+                    inputCache: { sale: '', ori: '', name: '', note: '' } 
+                });
             } catch (err) { console.error(err); }
         }
         updateThumbs();
@@ -188,10 +155,14 @@
     }
 
     function selectImg(i) {
-        if(curIdx !== -1) syncData();
+        if(curIdx !== -1) syncData(); // 同步旧图的元素数据
         curIdx = i;
         display.src = images[i].src;
         editor.style.display = 'block';
+        
+        // 恢复当前图特有的输入内容
+        restoreInputCache(i);
+
         const els = editor.querySelectorAll('.element');
         for(let j=0; j<els.length; j++) els[j].remove();
         for(let k=0; k<images[i].elements.length; k++) renderEl(images[i].elements[k]);
@@ -200,8 +171,15 @@
 
     function delImg(i) {
         images.splice(i, 1);
-        if(images.length === 0) { curIdx = -1; editor.style.display = 'none'; }
-        else { let next = i >= images.length ? images.length - 1 : i; curIdx = -1; selectImg(next); }
+        if(images.length === 0) { 
+            curIdx = -1; 
+            editor.style.display = 'none'; 
+            restoreInputCache(-1); // 重置输入框
+        } else { 
+            let next = i >= images.length ? images.length - 1 : i; 
+            curIdx = -1; 
+            selectImg(next); 
+        }
         updateThumbs();
     }
 
@@ -222,6 +200,44 @@
             });
         }
         images[curIdx].elements = list;
+    }
+
+    function doAdd(type) {
+        if(curIdx === -1) return alert("请先上传照片");
+        const nameVal = document.getElementById('name-in').value;
+        const saleVal = document.getElementById('sale-in').value;
+        const oriVal = document.getElementById('ori-in').value;
+        const noteVal = document.getElementById('note-in').value;
+
+        const conf = type === 'tag' ? 
+            { type, x:'20%', y:'20%', w:'240px', h:'210px', name:nameVal, sale:saleVal, ori:oriVal } :
+            { type, x:'20%', y:'20%', w:'160px', h:'60px', note:noteVal };
+        renderEl(conf);
+        syncData();
+    }
+
+    function renderEl(c) {
+        const el = document.createElement('div');
+        el.className = 'element';
+        el.dataset.type = c.type;
+        el.style.left = c.x; el.style.top = c.y; el.style.width = c.w; el.style.height = c.h;
+
+        if(c.type === 'tag') {
+            el.dataset.name = c.name; el.dataset.sale = c.sale; el.dataset.ori = c.ori;
+            let html = '<div class="tag-wrapper">';
+            if(c.name) html += '<div class="name-box">'+c.name+'</div>';
+            if(c.sale) html += '<div class="sale-box">惊爆价：'+c.sale+'</div>';
+            if(c.ori) html += '<div class="ori-box">原价：'+c.ori+'</div>';
+            html += '</div><div class="resizer"></div><div class="delete-btn">×</div>';
+            el.innerHTML = html;
+        } else {
+            el.dataset.note = c.note;
+            el.innerHTML = '<div class="note-wrapper">'+(c.note||'')+'</div><div class="resizer"></div><div class="delete-btn">×</div>';
+        }
+
+        editor.appendChild(el);
+        bindEv(el);
+        fit(el);
     }
 
     function fit(el) {
@@ -322,7 +338,7 @@
             await new Promise(r => setTimeout(r, 800));
         }
         loading.style.display = 'none';
-        alert("保存成功！");
+        alert("全部导出完成！");
     }
 </script>
 </body>
