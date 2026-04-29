@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>批量价签-布局锁定版</title>
+    <style>
+        :root { --accent-red: #e60012; --bg-dark: #121212; --note-yellow: #fff200; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg-dark); color: #eee; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* 保持你喜欢的 90px 布局 */
+        #preview-bar { height: 90px; background: #000; display: flex; align-items: center; padding: 0 10px; gap: 12px; overflow-x: auto; border-bottom: 1px solid #333; flex-shrink: 0; }
+        .thumb-item { position: relative; flex: 0 0 70px; height: 70px; border: 2px solid #444; border-radius: 6px; background: #222; }
+        .thumb-item.active { border-color: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+        .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+        .thumb-del { position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; font-size: 14px; z-index: 10; }
+
+        .header-tools { background: #222; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #333; }
+        .input-group { display: flex; align-items: center; background: #333; padding: 0 8px; border-radius: 6px; border: 1px solid #444; }
+        .input-group label { font-size: 11px; color: #aaa; margin-right: 4px; }
+        input { background: transparent; border: none; color: white; padding: 8px; width: 65px; outline: none; font-size: 14px; }
+        button { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-red { background: var(--accent-red); color: white; }
+        .btn-green { background: #27ae60; color: white; margin-left: auto; }
+
+        #workspace { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #1a1a1a; }
+        .canvas-container { position: relative; line-height: 0; }
+        #main-display { max-width: 95vw; max-height: 60vh; display: block; user-select: none; pointer-events: none; }
+
+        .element { position: absolute; cursor: move; box-sizing: border-box; touch-action: none; z-index: 5; }
+        .tag-wrapper { width: 100%; height: 100%; background-image: url('tag-template.png'); background-size: 100% 100%; position: relative; }
+        .sale-box { position: absolute; top: 47%; left: 15%; width: 70%; height: 20%; display: flex; align-items: center; justify-content: center; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
+        .ori-box { position: absolute; top: 69%; left: 22%; width: 56%; height: 12%; display: flex; align-items: center; justify-content: flex-start; color: var(--accent-red); font-weight: 900; white-space: nowrap; pointer-events: none; }
+        .note-wrapper { width: 100%; height: 100%; background-color: var(--note-yellow); color: var(--accent-red); font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; pointer-events: none; }
+
+        .resizer { width: 35px; height: 35px; background: white; border: 4px solid var(--accent-red); position: absolute; right: -17px; bottom: -17px; border-radius: 8px; z-index: 10; }
+        .delete-btn { position: absolute; top: -17px; left: -17px; width: 35px; height: 35px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 35px; font-size: 22px; z-index: 10; }
+        #export-canvas { display: none; }
+        
+        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999; flex-direction: column; justify-content: center; align-items: center; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay">正在读取图片...</div>
+
+<div id="preview-bar">
+    <button id="add-img-btn" style="flex:0 0 70px; height:70px; background:#333; color:#888; font-size:40px; border-radius:8px; border:1px dashed #555;" onclick="document.getElementById('upload-input').click()">+</button>
+    <input type="file" id="upload-input" accept="image/*" multiple style="display:none">
+</div>
+
+<div class="header-tools">
+    <div class="input-group">
+        <label>惊爆</label><input type="text" id="sale-in" placeholder="888元">
+        <label>原价</label><input type="text" id="ori-in" placeholder="1999">
+        <button class="btn-red" onclick="doAdd('tag')">加价签</button>
+    </div>
+    <div class="input-group">
+        <input type="text" id="note-in" placeholder="备注内容">
+        <button class="btn-red" onclick="doAdd('note')">加备注</button>
+    </div>
+    <button class="btn-green" onclick="exportBatch()">💾 全部保存</button>
+</div>
+
+<div id="workspace">
+    <div class="canvas-container" id="editor-node" style="display:none;">
+        <img id="main-display" src="">
+    </div>
+    <div id="hint" style="color:#555; text-align:center;">请点击左上角 [+] 选择图片<br>(支持多选)</div>
+</div>
+
+<canvas id="export-canvas"></canvas>
+
+<script>
+    let images = []; 
+    let curIdx = -1;
+    let isProcessing = false;
+    const editor = document.getElementById('editor-node');
+    const display = document.getElementById('main-display');
+    const loading = document.getElementById('loading-overlay');
+
+    document.getElementById('upload-input').addEventListener('change', async function(e) {
+        if (isProcessing) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        isProcessing = true;
+        loading.style.display = 'flex';
+        
+        for (let i = 0; i < files.length; i++) {
+            if (images.length >= 20) break; // 增加到20张上限
+            try {
+                const dataUrl = await readFileAsync(files[i]);
+                images.push({ src: dataUrl, elements: [] });
+            } catch (err) { console.error("读取失败", err); }
+        }
+
+        updateThumbs();
+        if (curIdx === -1 && images.length > 0) selectImg(0);
+        
+        this.value = ''; 
+        loading.style.display = 'none';
+        isProcessing = false;
+    });
+
+    function readFileAsync(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target.result);
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function updateThumbs() {
+        const bar = document.getElementById('preview-bar');
+        const oldThumbs = bar.querySelectorAll('.thumb-item');
+        for (let i = 0; i < oldThumbs.length; i++) oldThumbs[i].remove();
+
+        for (let i = 0; i < images.length; i++) {
+            const div = document.createElement('div');
+            div.className = "thumb-item" + (i === curIdx ? " active" : "");
+            div.onclick = function() { selectImg(i); };
+            div.innerHTML = '<img src="'+images[i].src+'" class="thumb-img"><div class="thumb-del">×</div>';
+            
+            div.querySelector('.thumb-del').onclick = function(e) {
+                e.stopPropagation();
+                delImg(i);
+            };
+            
+            bar.insertBefore(div, document.getElementById('add-img-btn'));
+        }
+        document.getElementById('hint').style.display = images.length ? 'none' : 'block';
+    }
+
+    function selectImg(i) {
+        if(curIdx !== -1) syncData();
+        curIdx = i;
+        display.src = images[i].src;
+        editor.style.display = 'block';
+        const els = editor.querySelectorAll('.element');
+        for(let j=0; j<els.length; j++) els[j].remove();
+        for(let k=0; k<images[i].elements.length; k++) renderEl(images[i].elements[k]);
+        updateThumbs();
+    }
+
+    function delImg(i) {
+        images.splice(i, 1);
+        if(images.length === 0) {
+            curIdx = -1;
+            editor.style.display = 'none';
+        } else {
+            let next = i >= images.length ? images.length - 1 : i;
+            curIdx = -1;
+            selectImg(next);
+        }
+        updateThumbs();
+    }
+
+    function syncData() {
+        if(curIdx === -1) return;
+        const list = [];
+        const els = editor.querySelectorAll('.element');
+        for(let i=0; i<els.length; i++) {
+            const el = els[i];
+            list.push({
+                type: el.dataset.type,
+                x: el.style.left, y: el.style.top,
+                w: el.style.width, h: el.style.height,
+                sale: el.dataset.sale || '',
+                ori: el.dataset.ori || '',
+                note: el.dataset.note || ''
+            });
+        }
+        images[curIdx].elements = list;
+    }
+
+    function doAdd(type) {
+        if(curIdx === -1) return alert("请先上传照片");
+        // 如果输入框为空，则使用默认文本，但不占用 input 框
+        const saleVal = document.getElementById('sale-in').value || '888';
+        const oriVal = document.getElementById('ori-in').value || '1999';
+        const noteVal = document.getElementById('note-in').value || '备注';
+
+        const conf = type === 'tag' ? 
+            { type, x:'20%', y:'20%', w:'240px', h:'210px', sale:saleVal, ori:oriVal } :
+            { type, x:'20%', y:'20%', w:'160px', h:'60px', note:noteVal };
+        renderEl(conf);
+        syncData();
+    }
+
+    function renderEl(c) {
+        const el = document.createElement('div');
+        el.className = 'element';
+        el.dataset.type = c.type;
+        el.style.left = c.x; el.style.top = c.y; el.style.width = c.w; el.style.height = c.h;
+
+        if(c.type === 'tag') {
+            el.dataset.sale = c.sale; el.dataset.ori = c.ori;
+            el.innerHTML = '<div class="tag-wrapper"><div class="sale-box">惊爆价：'+c.sale+'</div><div class="ori-box">原价：'+c.ori+'</div></div><div class="resizer"></div><div class="delete-btn">×</div>';
+        } else {
+            el.dataset.note = c.note;
+            el.innerHTML = '<div class="note-wrapper">'+c.note+'</div><div class="resizer"></div><div class="delete-btn">×</div>';
+        }
+
+        editor.appendChild(el);
+        bindEv(el);
+        fit(el);
+    }
+
+    function fit(el) {
+        const h = el.offsetHeight, w = el.offsetWidth;
+        if(el.dataset.type === 'tag') {
+            const s = el.querySelector('.sale-box'), o = el.querySelector('.ori-box');
+            s.style.fontSize = Math.min(h*0.16, (w/s.innerText.length)*1.0)+'px';
+            o.style.fontSize = Math.min(h*0.09, (w/o.innerText.length)*0.95)+'px';
+        } else {
+            const n = el.querySelector('.note-wrapper');
+            n.style.fontSize = Math.min(h*0.5, (w/n.innerText.length)*1.4)+'px';
+        }
+    }
+
+    function bindEv(el) {
+        el.querySelector('.delete-btn').onclick = function(e) { e.stopPropagation(); el.remove(); syncData(); };
+        let dragging = false, resizing = false, sx, sy, sw, sh, sl, st;
+
+        const onStart = (e) => {
+            const t = e.touches ? e.touches[0] : e;
+            resizing = e.target.classList.contains('resizer');
+            dragging = !resizing;
+            sx = t.clientX; sy = t.clientY;
+            sw = el.offsetWidth; sh = el.offsetHeight;
+            sl = el.offsetLeft; st = el.offsetTop;
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onMove, {passive:false});
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        };
+
+        const onMove = (e) => {
+            const t = e.touches ? e.touches[0] : e;
+            const dx = t.clientX - sx, dy = t.clientY - sy;
+            if(dragging) { el.style.left = sl+dx+'px'; el.style.top = st+dy+'px'; }
+            else if(resizing) {
+                el.style.width = Math.max(80, sw+dx)+'px';
+                el.style.height = Math.max(60, sh+dy)+'px';
+                fit(el);
+            }
+            if(e.cancelable) e.preventDefault();
+        };
+
+        const onEnd = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('touchmove', onMove);
+            syncData();
+        };
+
+        el.addEventListener('mousedown', onStart);
+        el.addEventListener('touchstart', onStart, {passive:false});
+    }
+
+    async function exportBatch() {
+        if(!images.length) return;
+        syncData();
+        const canvas = document.getElementById('export-canvas');
+        const ctx = canvas.getContext('2d');
+        const tImg = new Image(); tImg.src = 'tag-template.png';
+        await new Promise(r => tImg.onload = r);
+
+        for(let i=0; i<images.length; i++) {
+            const d = images[i];
+            const mImg = new Image(); mImg.src = d.src;
+            await new Promise(r => mImg.onload = r);
+            canvas.width = mImg.width; canvas.height = mImg.height;
+            ctx.drawImage(mImg, 0, 0);
+            const r = mImg.width / display.offsetWidth;
+
+            for(let j=0; j<d.elements.length; j++) {
+                const e = d.elements[j];
+                const x=parseFloat(e.x)*r, y=parseFloat(e.y)*r, w=parseFloat(e.w)*r, h=parseFloat(e.h)*r;
+                if(e.type === 'tag') {
+                    ctx.drawImage(tImg, x, y, w, h);
+                    ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
+                    ctx.font = '900 '+(h*0.16)+'px sans-serif';
+                    ctx.fillText("惊爆价："+e.sale, x+w*0.5, y+h*0.58);
+                    ctx.textAlign = "left";
+                    ctx.font = '900 '+(h*0.09)+'px sans-serif';
+                    ctx.fillText("原价："+e.ori, x+w*0.22, y+h*0.79);
+                } else {
+                    ctx.fillStyle = "#fff200"; ctx.fillRect(x,y,w,h);
+                    ctx.fillStyle = "#e60012"; ctx.textAlign = "center";
+                    ctx.font = '900 '+(h*0.5)+'px sans-serif';
+                    ctx.fillText(e.note, x+w/2, y+h/2 + (h*0.5)/3);
+                }
+            }
+            const link = document.createElement('a');
+            link.download = "price_"+(new Date().getTime())+"_"+i+".png";
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+            await new Promise(r => setTimeout(r, 800));
+        }
+        alert("批量保存完成！");
+    }
+</script>
+</body>
+</html>
